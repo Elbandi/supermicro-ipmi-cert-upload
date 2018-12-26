@@ -10,3 +10,4 @@ Usage: [options] ipmi_ip
 | debug | bool | enable debug | false |
 | username | string | ipmi login username | |
 | password | string | ipmi login password | |
+| reset | bool | reset bmc | false |

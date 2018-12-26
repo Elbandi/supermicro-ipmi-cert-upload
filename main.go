@@ -153,6 +153,29 @@ func validateCert(client *http.Client, ip, sid string) (string, error) {
 	return string(validate), nil
 }
 
+func resetBMC(client *http.Client, ip, sid string) (string, error) {
+	resetRequest, err := http.NewRequest("POST", "http://"+ip+"/cgi/BMCReset.cgi",
+		strings.NewReader(url.Values{"time_stamp": {time.Now().String()}}.Encode()))
+	if err != nil {
+		return "", nil
+	}
+	resetRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resetRequest.AddCookie(&http.Cookie{Name: "SID", Value: sid})
+	resetResponse, err := client.Do(resetRequest)
+	if debug {
+		log.Println(resetResponse, err)
+	}
+	if err != nil {
+		return "", nil
+	}
+	defer resetResponse.Body.Close()
+	response, err := ioutil.ReadAll(resetResponse.Body)
+	if err != nil {
+		return "", nil
+	}
+	return string(response), nil
+}
+
 func getCwd() string {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -164,6 +187,7 @@ func getCwd() string {
 func main() {
 	usernamePtr := flag.String("username", "", "login username")
 	passwordPtr := flag.String("password", "", "login password")
+	resetPtr := flag.Bool("reset", false, "reset bmc")
 	certFilePtr := flag.String("cert", "", "cert file")
 	keyFilePtr := flag.String("key", "", "key file")
 	basePathPtr := flag.String("base", getCwd(), "certificates base path")
@@ -213,4 +237,10 @@ func main() {
 		log.Fatalln("Cert status failed: " + err.Error())
 	}
 	fmt.Println("After status: " + status)
+	if *resetPtr {
+		_, err := resetBMC(client, ip, sid)
+		if err != nil {
+			log.Fatalln("BMC reset failed: " + err.Error())
+		}
+	}
 }
